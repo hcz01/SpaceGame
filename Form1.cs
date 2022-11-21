@@ -1,8 +1,20 @@
+using System.Timers;
+using System.Net;
+using System.Text;
+using System.Net.Sockets;
 namespace SpaceGame
 {
     public partial class Form1 : Form
     {
+
+        //  private static System.Timers.Timer aTimer;
+        //stored all steps: index is time, the first value is x and second value is y
+        List<step> steps = new List<step>();
+        // position of this color
         PointF p = new PointF(100, 100);
+
+
+        TimeSpan ts;
         public Form1()
         {
             InitializeComponent();
@@ -11,11 +23,18 @@ namespace SpaceGame
             KeyPreview = true;
             // Associate the event-handling method with the
             // KeyDown event.
-            this.KeyDown += new KeyEventHandler(Form1_KeyDown);
+             this.KeyDown += new KeyEventHandler(Form1_KeyDown);
+     
+
+
+
         }
-        private void Form1_KeyDown(object sender, KeyEventArgs e)
+
+        
+            private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
-          //check the bord of map
+           
+            //check the bord of map
             switch (e.KeyCode)
             {
                 case Keys.Left:
@@ -32,8 +51,10 @@ namespace SpaceGame
                     break;
                 default:
                     break;
-
             }
+            ts = DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0);
+            steps.Add(new step(Convert.ToInt64(ts.TotalSeconds), p.X,p.Y));
+ 
             //if is not key need,the key become be invalidated
             Invalidate();
         }
@@ -48,5 +69,25 @@ namespace SpaceGame
             pictureBox1.Image = bmp;
         }
 
+        //connect to server, now it used simulate player alone so use writeMove
+        private void writeMove()
+        {
+            using StreamWriter file = new("steps.txt");
+            foreach (step s in steps)
+            {
+                file.Write(s.tostring()+"\n");
+            }
+        }
+
+        private void aTimer_Tick(object sender, EventArgs e)
+        {
+            LabelTime.Text = ((Int32.Parse(LabelTime.Text) + 1).ToString());
+            if (LabelTime.Text == "5")
+            {
+                writeMove();
+                aTimer.Stop();
+                this.Close();
+            }
+        }
     }
 }
