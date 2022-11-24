@@ -1,6 +1,6 @@
 ﻿namespace SpaceGame
 {
-    partial class Form1
+    partial class Game
     {
         /// <summary>
         ///  Required designer variable.
@@ -55,18 +55,17 @@
             // 
             // aTimer
             // 
-            this.aTimer.Enabled = true;
             this.aTimer.Interval = 1000000;
             this.aTimer.Tick += new System.EventHandler(this.aTimer_Tick);
             // 
-            // Form1
+            // Game
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 17F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(822, 467);
             this.Controls.Add(this.LabelTime);
             this.Controls.Add(this.pictureBox1);
-            this.Name = "Form1";
+            this.Name = "Game";
             this.Text = "Form1";
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.ResumeLayout(false);

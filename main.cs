@@ -12,7 +12,7 @@ using System.Windows.Forms;
 
 namespace SpaceGame
 {
-    public partial class main : Form
+    public partial class main : Form 
     {
         regist regist = new regist();// the window can regist this client name
         string Message;
@@ -20,12 +20,12 @@ namespace SpaceGame
         public main()
         {
             InitializeComponent();
-           
-           
+
         }
 
+        
 
-        public void longlink()
+        private void longlink()
         {
             //set ip and port
             IPAddress ip = IPAddress.Parse("127.0.0.1");
@@ -43,48 +43,50 @@ namespace SpaceGame
 
             // the first conversation is add this client name on server
                 string sentstr= registClientName();
-               
-            
-
         }
 
-
-
-        public void SentMsg(string sentstr, Socket clientSocket)
+    
+        private string SentMsg(string sentstr, Socket clientSocket)
         {
-            string sendMessage = "hi";//the strign send for server
+            string sendMessage = sentstr;//the strign send for server
             sendMessage = sentstr;//context send for server
             clientSocket.Send(Encoding.UTF8.GetBytes(sendMessage));
             listBox1.Items.Add("il messaggio che hai mandato al server：" + sendMessage);
+
             //accept the message from server 
             string recvStr = "";
             byte[] recvBytes = new byte[1024];
             int bytes;
             bytes = clientSocket.Receive(recvBytes, recvBytes.Length, 0);    //Receive messages from the server 
             recvStr += Encoding.UTF8.GetString(recvBytes, 0, bytes);
+            string str=checkTypeMsg(recvStr);
             listBox1.Items.Add("il messaggio riceve dal server：{0}" + " " + recvStr);    //show the message 
+            return str;
             
         }
-
-        //the method is used to see if the name is correct
-        public string CheckName(string sentstr, Socket clientSocket)
+        private string checkTypeMsg(string msg)
         {
-            string sendMessage = sentstr;//string send for server
-            //send name
-                clientSocket.Send(Encoding.UTF8.GetBytes(sendMessage));
-                    listBox1.Items.Add("ii nome che hai mandato：" + sendMessage);
-            //accept the message from server 
-            string recvStr = "";
-            byte[] recvBytes = new byte[1024];
-            int bytes;
-                bytes = clientSocket.Receive(recvBytes, recvBytes.Length, 0);    //receive the message from server 
-                recvStr += Encoding.UTF8.GetString(recvBytes, 0, bytes);
-            if(recvStr!="false")
-                    listBox1.Items.Add("il nome di questo client e' " + recvStr);    //show the message 
-
-            return recvStr;
+            if(msg!="" && msg!=null)
+            {
+                string []str= msg.Split(';');// [0] type  [1] context
+                int type = Int32.Parse(str[0]);
+                switch (type)
+                {
+                    // regist name
+                        case 0:
+                        if (str[1] == "true")
+                        {
+                            listBox1.Items.Add("registra il nome successo");    //show the message 
+                            return buildMsg(0,"true");
+                        }
+                        break;
+                        default:
+                        break;
+                }
+            }
+            return buildMsg(0, "false");
+          
         }
-
 
         //method is used to regist name
        private string registClientName()
@@ -93,19 +95,31 @@ namespace SpaceGame
             do
             {
                 regist.ShowDialog();
-                sentstr = regist.name;
-
-                if (sentstr != "" && CheckName(sentstr, clientSocket) !="false")
+                sentstr = buildMsg(0, regist.name);
+                if (sentstr != "" && SentMsg(sentstr, clientSocket).Split(";")[1] != "false")
                     break;
 
             } while (true);
-            regist.Dispose();
+          //  regist.Dispose();
+            ClientName.Text = regist.name;
             return sentstr;
         }
+        
 
         private void ConnetServer_Click(object sender, EventArgs e)
         {
             longlink();
+        }
+        private string buildMsg(int type, string msg)
+        {
+            return type + ";" + msg;
+        }
+        //vs pc
+        private void button2_Click(object sender, EventArgs e)
+        {
+            Game g=new Game(clientSocket);
+            if (g != null && !g.IsDisposed)
+                g.Show();
         }
     }
 }
