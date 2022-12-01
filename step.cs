@@ -21,5 +21,14 @@ namespace SpaceGame
         {
             return sec.ToString()+";"+x.ToString()+";"+y.ToString();
         }
+        public int CompareTo(step other)
+        {
+            if (null == other)
+            {
+                return 1;
+            }
+            //return this.Id.CompareTo(other.Id);//growing
+            return other.sec.CompareTo(this.sec);//descending
+        }
     }
 }

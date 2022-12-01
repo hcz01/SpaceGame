@@ -55,7 +55,8 @@
             // 
             // aTimer
             // 
-            this.aTimer.Interval = 1000000;
+            this.aTimer.Enabled = true;
+            this.aTimer.Interval = 1000;
             this.aTimer.Tick += new System.EventHandler(this.aTimer_Tick);
             // 
             // Game

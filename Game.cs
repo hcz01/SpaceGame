@@ -10,32 +10,42 @@ namespace SpaceGame
         //  private static System.Timers.Timer aTimer;
         //stored all steps: index is time, the first value is x and second value is y
         List<step> steps = new List<step>();
+        List<step> steps2 = new List<step>();
+
+        List<step> copy_steps = new List<step>();
+        List<step> copy_steps2 = new List<step>();
         // position of this color
-        PointF p = new PointF(125, 100);
-        PointF p2 = new PointF(377, 100);
+        PointF p = new PointF(305, 100);
+        PointF p2 = new PointF(375, 100);
         TimeSpan ts;
         private Socket _socket;
         private static byte[] result = new byte[1024];
 
         public Game(Socket _socket)
         {
-           this._socket = _socket;  
+            this._socket = _socket;
             InitializeComponent();
             //connect to server for start game
             aTimer.Enabled = false;
-            DialogResult dialogResult = MessageBox.Show("sei pronto per giocare ?", "Conferma",MessageBoxButtons.YesNo);
-            if (dialogResult == DialogResult.Yes )
+            DialogResult dialogResult = MessageBox.Show("sei pronto a giocare ?", "Conferma", MessageBoxButtons.YesNo);
+            if (dialogResult == DialogResult.Yes)
             {
                 // Set KeyPreview object to true to allow the form to process
                 // the key before the control with focus processes it.
                 if (this._socket != null)
                 {
-                 //   SentMsg(buildMsg(1, "type of game"), this._socket);
                     KeyPreview = true;
                     aTimer.Enabled = true;
                     // Associate the event-handling method with the KeyDown event
                     this.KeyDown += new KeyEventHandler(Form1_KeyDown);
-                    SentMsg(buildMsg(2,"ready"), _socket);
+                    //init steps stored
+                    ts = DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0);
+                    steps.Add(new step(Convert.ToInt64(ts.TotalSeconds), p.X, p.Y));
+                    steps2.Add(new step(Convert.ToInt64(ts.TotalSeconds), p2.X, p2.Y));
+                    copy_steps.Add(new step(Convert.ToInt64(ts.TotalSeconds), p.X, p.Y));
+                    copy_steps2.Add(new step(Convert.ToInt64(ts.TotalSeconds), p2.X, p2.Y));
+                    // the first messaage for communicate server to start game
+                    SentMsg(buildMsg(2, "ready"), _socket);
                     Thread myThread = new Thread(ListenClientConnect);
                     myThread.Start();
                 }
@@ -44,26 +54,26 @@ namespace SpaceGame
                     MessageBox.Show("no connect");
                     this.Close();
                 }
-              
+
             }
             else if (dialogResult == DialogResult.No)
                 this.Close();
-               
-          
+
+
         }
-        
         public Socket MySocket
         {
             get { return _socket; }
             set { _socket = value; }
         }
+        //send message
         private void SentMsg(string sentstr, Socket clientSocket)
         {
             string sendMessage = sentstr;//the strign send for server
             sendMessage = sentstr;//context send for server
             clientSocket.Send(Encoding.UTF8.GetBytes(sendMessage));
-        }
 
+        }
 
         //listen message 
         private void ListenClientConnect()
@@ -77,7 +87,7 @@ namespace SpaceGame
         private void ReceiveMessage(object clientSocket)
         {
             string sendStr;
-            Socket myClientSocket =(Socket) clientSocket;
+            Socket myClientSocket = (Socket)clientSocket;
             while (true)
             {
                 try
@@ -89,12 +99,17 @@ namespace SpaceGame
                     string risultato = Encoding.UTF8.GetString(result, 0, receiveNumber);
                     //return the data of client
                     //check this name is validate
+                    if (risultato.Split()[0] == "3")
+                    {
+                        int abc = 1;
+                    }
+
                     sendStr = checkTypeMsg(risultato);
 
                 }
                 catch (Exception ex)
                 {
-                  //  myClientSocket.Close();//close clientsoket
+                    //  myClientSocket.Close();//close clientsoket
                     break;
                 }
             }
@@ -106,35 +121,49 @@ namespace SpaceGame
             {
                 string[] str = msg.Split(';');// [0] type  [1] context
                 int type = Int32.Parse(str[0]);
-                string context=str[1];
+                int passage;
+                string context = str[1];
                 switch (type)
                 {
                     case 2:
-                        int passage=Int32.Parse(context);
+                        passage = Int32.Parse(context);
+                        float x = p2.X;
+                        float y = p2.Y;
                         switch (passage)
                         {
                             case 0:
-                                p2.X -= 10;
+                                x -= 10;
                                 break;
                             case 1:
-                                p2.X += 10;
+                                x += 10;
                                 break;
                             case 2:
-                                p2.Y -= 10;
+                                y -= 10;
                                 break;
                             case 3:
-                                p2.Y += 10;
+                                y += 10;
                                 break;
                         }
+                       bool isV=Pvalidate(ref x, ref y);
+                        p2.X = x;
+                        p2.Y = y;
+                        ts = DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0);
+                        if (isV != false)
+                        {
+                            steps2.Add(new step(Convert.ToInt64(ts.TotalSeconds), p2.X, p2.Y));
+                            copy_steps2.Add(new step(Convert.ToInt64(ts.TotalSeconds), p2.X, p2.Y));
+                        }
+                        Invalidate();
                         break;
                     case 3:
+                        
 
                         break;
                     default:
                         break;
                 }
             }
-            Invalidate();
+            
             return buildMsg(0, "false");
 
         }
@@ -143,63 +172,225 @@ namespace SpaceGame
             return type + ";" + msg;
         }
 
+        //draw moviment
         private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
-           
+
+            string str;
+            float x = p.X;
+            float y = p.Y;
             //check the bord of map
             switch (e.KeyCode)
             {
+
                 case Keys.Left:
-                    p.X -= 10;
+                    x -= 10;
                     break;
+
                 case Keys.Right:
-                    p.X += 10;
+                    x += 10;
                     break;
+
                 case Keys.Up:
-                    p.Y -= 10;
+                    y -= 10;
                     break;
+
                 case Keys.Down:
-                    p.Y += 10;
+                    y += 10;
                     break;
                 default:
                     break;
             }
+
+            bool isV=Pvalidate(ref x, ref y);
+            p.X = x;
+            p.Y=  y;
+            str = p.X.ToString() + ";" + p.Y.ToString();
             ts = DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0);
-            SentMsg(buildMsg(2, steps.ToString()),_socket);
-            steps.Add(new step(Convert.ToInt64(ts.TotalSeconds), p.X,p.Y));
-            //if is not key need,the key become be invalidated
+           if(isV !=false)
+            {
+                steps.Add(new step(Convert.ToInt64(ts.TotalSeconds), p.X, p.Y));
+                copy_steps.Add(new step(Convert.ToInt64(ts.TotalSeconds), p.X, p.Y));
+            }
+                
+
+            SentMsg(buildMsg(3, str), _socket);
             Invalidate();
+
         }
+        //check does is position validate
+        private bool Pvalidate(ref float x, ref float y)
+        {
+           
+            if (x >= 490 )
+                x -= 10;
+            else if(x <= 0)
+                x += 10;
+
+            if (y >= 350 )
+                y -= 10;
+            else if (y <= 0)
+                y += 10;
+
+            if((x == p.X && y == p.Y) ||(x == p2.X && y == p2.Y))
+                return false;
+
+            return true;
+        }
+
         protected override void OnPaint(PaintEventArgs e)
         {
             //take map 
             System.Drawing.Bitmap bmp = new Bitmap(pictureBox1.Image);
             //draw circle
             Graphics g = Graphics.FromImage(bmp);
-            g.FillEllipse(new SolidBrush(Color.Red), new RectangleF(p, new SizeF(10, 10)));
+            PointF pp = p;
+            PointF pp2 = p2;
+            if (copy_steps.Count >1)
+                pp = new PointF(copy_steps[copy_steps.Count - 2].x, copy_steps[copy_steps.Count - 2].y);
+           
+
+            if (copy_steps2.Count > 1)
+            {
+                pp2 = new PointF(copy_steps2[copy_steps2.Count - 2].x, copy_steps2[copy_steps2.Count - 2].y);
+                copy_steps2.RemoveAt(copy_steps2.Count - 2);
+            }
+            //server
+            g.FillEllipse(new SolidBrush(Color.Green), new RectangleF(pp2, new SizeF(10, 10)));
             g.FillEllipse(new SolidBrush(Color.Blue), new RectangleF(p2, new SizeF(10, 10)));
+            //client
+            g.FillEllipse(new SolidBrush(Color.Red), new RectangleF(pp, new SizeF(10, 10)));
+            g.FillEllipse(new SolidBrush(Color.Black), new RectangleF(p, new SizeF(10, 10)));
+
             //put image drawed 
             pictureBox1.Image = bmp;
         }
 
         //connect to server, now it used simulate player alone so use writeMove
-        private void writeMove()
-        {
-            using StreamWriter file = new("steps.txt");
-            foreach (step s in steps)
-            {
-                file.Write(s.tostring()+"\n");
-            }
-        }
+
         private void aTimer_Tick(object sender, EventArgs e)
         {
             LabelTime.Text = ((Int32.Parse(LabelTime.Text) + 1).ToString());
-            if (LabelTime.Text == "5")
+            if (LabelTime.Text == "10")
             {
-                writeMove();
+                aTimer.Enabled = false;
+                int n=Winner();
+                switch (n)
+                {
+                    case 0:
+                        MessageBox.Show("pareggio");
+                        break;
+                    case 1:
+                        MessageBox.Show("tu hai vinto");
+                        break;
+                    case 2:
+                        MessageBox.Show("pc ha vinto");
+                        break;
+
+                }
                 aTimer.Stop();
+                
                 this.Close();
             }
         }
+        private int Winner()
+        {
+            string str="";
+            //descending
+            steps.Sort((a,b) => a.CompareTo(b));
+            steps2.Sort((a, b) => a.CompareTo(b));
+            //take only position has been once with time max
+            List<step> stepDistinct = steps.Where((a, b) => steps.FindIndex(c => (c.x == a.x && c.y == a.y)) == b).ToList();
+            List<step> step2Distinct = steps2.Where((a, b) => steps2.FindIndex(c => (c.x == a.x && c.y == a.y)) == b).ToList();
+            //finde items with same position
+            stepDistinct.Sort((a, b) => a.CompareTo(b));
+            step2Distinct.Sort((a, b) => a.CompareTo(b));
+            var exp1 = stepDistinct
+                .Where(a => step2Distinct.Any(t => (a.x == t.x && a.y == t.y)))
+                .ToList();
+
+/*
+
+            foreach (step item in stepDistinct)
+            {
+
+                str += item.sec + ";" + item.x + ";" + item.y;
+                str += "\n";
+            }
+            str += " --------------------" +
+                "\n";
+            foreach (step item in step2Distinct)
+            {
+
+                str += item.sec + ";" + item.x + ";" + item.y;
+                str += "\n";
+            }
+*/
+            //Remove 2 identical positions and times less than the largest (exp1)
+            foreach (step item in stepDistinct.ToList())
+            {
+                foreach (step item2 in exp1)
+                {
+                    if (item2.x == item.x && item2.y == item.y && item.sec < item2.sec)
+                        stepDistinct.Remove(item);
+                }
+
+            }
+            foreach (step item in step2Distinct.ToList())
+            {
+                foreach (step item2 in exp1)
+                {
+
+                    if (item2.x == item.x && item2.y == item.y && item.sec < item2.sec)
+                        step2Distinct.Remove(item);
+                }
+            }
+
+            /*
+            foreach (step item in steps.ToList())
+            {
+
+                str += item.sec + ";" + item.x + ";" + item.y;
+                str += "\n";
+            }
+            str += " --------------------" +
+                "\n";
+
+            foreach (step item in exp1.ToList())
+            {
+
+                str += item.sec + ";" + item.x + ";" + item.y;
+                str += "\n";
+            }
+            str += " --------------------" +
+                "\n";
+            foreach (step item in stepDistinct)
+            {
+
+                str += item.sec + ";" + item.x + ";" + item.y;
+                str += "\n";
+            }
+            str += " --------------------" +
+                "\n";
+            foreach (step item in step2Distinct)
+            {
+
+                str += item.sec + ";" + item.x + ";" + item.y;
+                str += "\n";
+            }
+            MessageBox.Show(str);
+            
+            MessageBox.Show(stepDistinct.Count +"  "+ step2Distinct.Count);
+            */
+            if (stepDistinct.Count == step2Distinct.Count)
+                return 0;
+            else if (stepDistinct.Count > step2Distinct.Count)
+                return 1;
+            else 
+                return 2;
+
+            return -1;
+        }
+
     }
 }

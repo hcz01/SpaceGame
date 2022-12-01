@@ -15,8 +15,9 @@ namespace SpaceGame
     public partial class main : Form 
     {
         regist regist = new regist();// the window can regist this client name
-        string Message;
         Socket clientSocket;
+        private static byte[] result = new byte[1024];
+        DialogResult dialogResult;
         public main()
         {
             InitializeComponent();
@@ -37,7 +38,7 @@ namespace SpaceGame
             }
             catch
             {
-                listBox1.Items.Add("connessione server failed. riporvare con il tasto enter");
+                listBox1.Items.Add("connessione server failed.");
                 return;
             }
 
@@ -70,6 +71,7 @@ namespace SpaceGame
             {
                 string []str= msg.Split(';');// [0] type  [1] context
                 int type = Int32.Parse(str[0]);
+                string context = str[1];
                 switch (type)
                 {
                     // regist name
@@ -79,8 +81,18 @@ namespace SpaceGame
                             listBox1.Items.Add("registra il nome successo");    //show the message 
                             return buildMsg(0,"true");
                         }
+
                         break;
-                        default:
+
+                    case 4:
+                        if(context== "ready")
+                           return buildMsg(4, "true");
+                        else
+                            return buildMsg(4, "false");
+
+                        break;
+
+                    default:
                         break;
                 }
             }
@@ -114,10 +126,73 @@ namespace SpaceGame
         {
             return type + ";" + msg;
         }
+
+        private void ListenClientConnect()
+        {
+            dialogResult = MessageBox.Show("stai aspettando altri giocatore ", "alert", MessageBoxButtons.OK);
+            if (dialogResult == DialogResult.Yes)
+                
+            while (true)
+            {
+                Thread receiveThread = new Thread(ReceiveMessage);
+                        receiveThread.Start(clientSocket);
+                    if (dialogResult == DialogResult.Yes)
+                        break;
+            }
+        }
+        private void ReceiveMessage(object clientSocket)
+        {
+           
+            string sendStr;
+            Socket myClientSocket = (Socket)clientSocket;
+            while (true)
+            {
+                try
+                {
+
+                    //use SocketClient for receive the result
+                    int receiveNumber = myClientSocket.Receive(result);
+                    if (receiveNumber == 0)
+                        return;
+                    string risultato = Encoding.UTF8.GetString(result, 0, receiveNumber);
+                    //return the data of client
+                    sendStr = checkTypeMsg(risultato);
+                    if (sendStr == buildMsg(4, "true"))
+                    {
+                        dialogResult = DialogResult.Yes;
+                        wait2pk();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    //  myClientSocket.Close();//close clientsoket
+                    break;
+                }
+            }
+        }
         //vs pc
         private void button2_Click(object sender, EventArgs e)
         {
             Game g=new Game(clientSocket);
+            if (g != null && !g.IsDisposed)
+                g.Show();
+        }
+        //vs client
+        private void button1_Click(object sender, EventArgs e)
+        {
+           string msg= SentMsg(buildMsg(4,ClientName.Text), clientSocket);
+
+            if (msg == buildMsg(4, "true"))
+            {
+                wait2pk();
+            }
+            else
+                    ListenClientConnect();
+        }
+
+        private void wait2pk()
+        {
+            Game g = new Game(clientSocket);
             if (g != null && !g.IsDisposed)
                 g.Show();
         }
