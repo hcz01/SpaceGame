@@ -2,6 +2,8 @@ using System.Timers;
 using System.Net;
 using System.Text;
 using System.Net.Sockets;
+using System.Diagnostics;
+
 namespace SpaceGame
 {
     public partial class Game : Form
@@ -9,22 +11,35 @@ namespace SpaceGame
 
         //  private static System.Timers.Timer aTimer;
         //stored all steps: index is time, the first value is x and second value is y
-        List<step> steps = new List<step>();
-        List<step> steps2 = new List<step>();
+        List<step> steps;
+        List<step> steps2;
 
-        List<step> copy_steps = new List<step>();
-        List<step> copy_steps2 = new List<step>();
+        List<step> copy_steps;
+        List<step> copy_steps2;
         // position of this color
-        PointF p = new PointF(305, 100);
-        PointF p2 = new PointF(375, 100);
+        PointF p;
+        PointF p2;
         TimeSpan ts;
         private Socket _socket;
-        private static byte[] result = new byte[1024];
+        private static byte[] result;
 
         public Game(Socket _socket)
         {
             this._socket = _socket;
             InitializeComponent();
+
+            steps = new List<step>();
+            steps2 = new List<step>();
+
+            copy_steps = new List<step>();
+            copy_steps2 = new List<step>();
+
+            result = new byte[1024];
+
+            // position of this color
+            p = new PointF(305, 100);
+            p2 = new PointF(375, 100);
+
             //connect to server for start game
             aTimer.Enabled = false;
             DialogResult dialogResult = MessageBox.Show("sei pronto a giocare ?", "Conferma", MessageBoxButtons.YesNo);
@@ -71,18 +86,18 @@ namespace SpaceGame
         {
             string sendMessage = sentstr;//the strign send for server
             sendMessage = sentstr;//context send for server
-            clientSocket.Send(Encoding.UTF8.GetBytes(sendMessage));
+            if (sendMessage != null && sendMessage.Length > 0)
+            {
+                clientSocket.Send(Encoding.UTF8.GetBytes(sendMessage));
+            }
 
         }
 
         //listen message 
         private void ListenClientConnect()
         {
-            while (true)
-            {
-                Thread receiveThread = new Thread(ReceiveMessage);
-                receiveThread.Start(_socket);
-            }
+            ReceiveMessage(_socket);
+
         }
         private void ReceiveMessage(object clientSocket)
         {
@@ -97,18 +112,17 @@ namespace SpaceGame
                     if (receiveNumber == 0)
                         return;
                     string risultato = Encoding.UTF8.GetString(result, 0, receiveNumber);
+
+                    //Debug.WriteLine("ricevuto: "+risultato);
                     //return the data of client
-                    //check this name is validate
-                    if (risultato.Split()[0] == "3")
-                    {
-                        int abc = 1;
-                    }
+
 
                     sendStr = checkTypeMsg(risultato);
 
                 }
                 catch (Exception ex)
                 {
+                    //  Debug.WriteLine(ex.ToString());
                     //  myClientSocket.Close();//close clientsoket
                     break;
                 }
@@ -120,12 +134,20 @@ namespace SpaceGame
             if (msg != "" && msg != null)
             {
                 string[] str = msg.Split(';');// [0] type  [1] context
+                if (str.Length == 0) return "";
+
+                Debug.WriteLine("Pos0: " + str[0]);
+                if (str[0] == "False") return "";
+
                 int type = Int32.Parse(str[0]);
                 int passage;
                 string context = str[1];
+                if (context.Length == 0) return "";
                 switch (type)
                 {
                     case 2:
+                        Debug.WriteLine("Pos1: " + context);
+                        if (context == "true0" || context == "true") return "";
                         passage = Int32.Parse(context);
                         float x = p2.X;
                         float y = p2.Y;
@@ -144,7 +166,7 @@ namespace SpaceGame
                                 y += 10;
                                 break;
                         }
-                       bool isV=Pvalidate(ref x, ref y);
+                        bool isV = Pvalidate(ref x, ref y);
                         p2.X = x;
                         p2.Y = y;
                         ts = DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0);
@@ -156,14 +178,14 @@ namespace SpaceGame
                         Invalidate();
                         break;
                     case 3:
-                        
+
 
                         break;
                     default:
                         break;
                 }
             }
-            
+
             return buildMsg(0, "false");
 
         }
@@ -202,17 +224,17 @@ namespace SpaceGame
                     break;
             }
 
-            bool isV=Pvalidate(ref x, ref y);
+            bool isV = Pvalidate(ref x, ref y);
             p.X = x;
-            p.Y=  y;
+            p.Y = y;
             str = p.X.ToString() + ";" + p.Y.ToString();
             ts = DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0);
-           if(isV !=false)
+            if (isV != false)
             {
                 steps.Add(new step(Convert.ToInt64(ts.TotalSeconds), p.X, p.Y));
                 copy_steps.Add(new step(Convert.ToInt64(ts.TotalSeconds), p.X, p.Y));
             }
-                
+
 
             SentMsg(buildMsg(3, str), _socket);
             Invalidate();
@@ -221,18 +243,18 @@ namespace SpaceGame
         //check does is position validate
         private bool Pvalidate(ref float x, ref float y)
         {
-           
-            if (x >= 490 )
+
+            if (x >= 490)
                 x -= 10;
-            else if(x <= 0)
+            else if (x <= 0)
                 x += 10;
 
-            if (y >= 350 )
+            if (y >= 350)
                 y -= 10;
             else if (y <= 0)
                 y += 10;
 
-            if((x == p.X && y == p.Y) ||(x == p2.X && y == p2.Y))
+            if ((x == p.X && y == p.Y) || (x == p2.X && y == p2.Y))
                 return false;
 
             return true;
@@ -246,9 +268,9 @@ namespace SpaceGame
             Graphics g = Graphics.FromImage(bmp);
             PointF pp = p;
             PointF pp2 = p2;
-            if (copy_steps.Count >1)
+            if (copy_steps.Count > 1)
                 pp = new PointF(copy_steps[copy_steps.Count - 2].x, copy_steps[copy_steps.Count - 2].y);
-           
+
 
             if (copy_steps2.Count > 1)
             {
@@ -274,7 +296,7 @@ namespace SpaceGame
             if (LabelTime.Text == "10")
             {
                 aTimer.Enabled = false;
-                int n=Winner();
+                int n = Winner();
                 switch (n)
                 {
                     case 0:
@@ -289,15 +311,15 @@ namespace SpaceGame
 
                 }
                 aTimer.Stop();
-                
+
                 this.Close();
             }
         }
         private int Winner()
         {
-            string str="";
+            string str = "";
             //descending
-            steps.Sort((a,b) => a.CompareTo(b));
+            steps.Sort((a, b) => a.CompareTo(b));
             steps2.Sort((a, b) => a.CompareTo(b));
             //take only position has been once with time max
             List<step> stepDistinct = steps.Where((a, b) => steps.FindIndex(c => (c.x == a.x && c.y == a.y)) == b).ToList();
@@ -309,23 +331,6 @@ namespace SpaceGame
                 .Where(a => step2Distinct.Any(t => (a.x == t.x && a.y == t.y)))
                 .ToList();
 
-/*
-
-            foreach (step item in stepDistinct)
-            {
-
-                str += item.sec + ";" + item.x + ";" + item.y;
-                str += "\n";
-            }
-            str += " --------------------" +
-                "\n";
-            foreach (step item in step2Distinct)
-            {
-
-                str += item.sec + ";" + item.x + ";" + item.y;
-                str += "\n";
-            }
-*/
             //Remove 2 identical positions and times less than the largest (exp1)
             foreach (step item in stepDistinct.ToList())
             {
@@ -346,51 +351,20 @@ namespace SpaceGame
                 }
             }
 
-            /*
-            foreach (step item in steps.ToList())
-            {
 
-                str += item.sec + ";" + item.x + ";" + item.y;
-                str += "\n";
-            }
-            str += " --------------------" +
-                "\n";
-
-            foreach (step item in exp1.ToList())
-            {
-
-                str += item.sec + ";" + item.x + ";" + item.y;
-                str += "\n";
-            }
-            str += " --------------------" +
-                "\n";
-            foreach (step item in stepDistinct)
-            {
-
-                str += item.sec + ";" + item.x + ";" + item.y;
-                str += "\n";
-            }
-            str += " --------------------" +
-                "\n";
-            foreach (step item in step2Distinct)
-            {
-
-                str += item.sec + ";" + item.x + ";" + item.y;
-                str += "\n";
-            }
-            MessageBox.Show(str);
-            
-            MessageBox.Show(stepDistinct.Count +"  "+ step2Distinct.Count);
-            */
             if (stepDistinct.Count == step2Distinct.Count)
                 return 0;
             else if (stepDistinct.Count > step2Distinct.Count)
                 return 1;
-            else 
+            else
                 return 2;
 
             return -1;
         }
 
+        private void pictureBox1_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }
